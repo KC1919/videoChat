@@ -17,14 +17,14 @@ video{
 .main{
     height: 100vh;
     display: flex;
-    
+
 }
 
 .main__left{
 	flex: 0.8;
 	display: flex;
 	flex-direction: column;
-	
+
 }
 
 .main__videos{
@@ -83,7 +83,7 @@ border-left: 1px solid #3D3D42;
 .main__chat_window
 {
     flex-grow: 1;
-    overflow-y: scroll; 
+    overflow-y: scroll;
 
 }
 .main__messages_container

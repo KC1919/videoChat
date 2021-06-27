@@ -1,4 +1,4 @@
-const socket = io('/');  //socket connection
+const socket = io("/");  //socket connection
 const videoGrid = document.getElementById('video-grid');
 const userDropDown = document.getElementById('myDropdown');
 const myVideo = document.createElement('video');
@@ -10,12 +10,6 @@ let cUser;
 let YourName = prompt('Type Your Name');
 // let bar = confirm('Confirm or deny');
 console.log(YourName);
-
-// var peer = new Peer(undefined,{   //we undefine this because peer server create it's own user it
-//   path: '/peerjs',
-// 	host: '/',
-// 	port: '3000'
-// });
 
 var peer=new Peer();
 
@@ -171,7 +165,7 @@ const share =() =>{
   document.body.removeChild(share);
   alert('Copied');
  }
- //msg sen from user
+ //msg send from user
 let text = $('input');
 
 $('html').keydown((e) =>{
@@ -184,7 +178,7 @@ $('html').keydown((e) =>{
 
 //Print msg in room
 socket.on('createMessage', (msg, user) =>{
-  $('ul').append(`<li class= "message"><small>~${user}</small><br>${msg}</li>`);
+  $('ul').append(`<li class= "message"><p style="color:red;padding:0;border:none;margin:0">~${user}</p>${msg}</li><br>`);
   scrollToBottom();
 });
 
@@ -243,7 +237,7 @@ const unChangeHandLogo = ()=>{
   const html = `<i class="far fa-hand-paper" style="color:red;"></i>
                 <span>Raised</span>`;
   document.querySelector('.raisedHand').innerHTML = html;
-  console.log("chnage")
+  console.log("change")
   changeHandLogo();
 }
 
