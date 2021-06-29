@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const server = require('http').createServer(app);
+const WebSocket = require("ws");
+const host={uid:"",sid:"",name:""}
+
 
 // ====================Socket===========================
 
@@ -17,10 +20,10 @@ const ExpressPeerServer = require('peer').ExpressPeerServer;
 
 // const app = express();
 const passport = require("passport");
-const LocalStrategy=require("passport-local").Strategy;
+const LocalStrategy = require("passport-local").Strategy;
 const mongoose = require("mongoose");
-const session=require("express-session");
-const passportLocalMongoose=require("passport-local-mongoose");
+const session = require("express-session");
+const passportLocalMongoose = require("passport-local-mongoose");
 
 app.use(express.json());
 app.use(express.urlencoded({
@@ -31,9 +34,9 @@ app.set("view engine", "ejs");
 app.use(express.static("public"));
 
 app.use(session({
-  secret:"Our little secret.",
-  resave:false,
-  saveUninitialized:false
+  secret: "Our little secret.",
+  resave: false,
+  saveUninitialized: false
 }));
 
 app.use(passport.initialize());
@@ -44,14 +47,19 @@ mongoose.connect("mongodb://localhost:27017/users", {
   useUnifiedTopology: true
 });
 
-const userSchema=new mongoose.Schema({
-  username:String,
-  password:String
+const userSchema = new mongoose.Schema({
+  username: String,
+  name: String,
+  password: String,
+  meetings: [{
+    date: Date,
+    time: String
+  }]
 });
 
 userSchema.plugin(passportLocalMongoose);
 
-const User=new mongoose.model("User",userSchema);
+const User = new mongoose.model("User", userSchema);
 
 passport.use(User.createStrategy());
 
@@ -68,7 +76,7 @@ app.get("/", (req, res) => {
   res.render("home");
 });
 
-app.get("/logout",(req,res)=>{
+app.get("/logout", (req, res) => {
   req.logout();
   res.redirect("/");
 })
@@ -93,6 +101,10 @@ app.get('/lobby', (req, res) => {
   }
 });
 
+app.get("/schedule", (req, res) => {
+  res.render("schedule");
+})
+
 
 app.get('/:room', (req, res) => {
   if (req.isAuthenticated()) {
@@ -101,78 +113,129 @@ app.get('/:room', (req, res) => {
     res.render('room', {
       roomId: `${addRoomId}`
     }); //get id from address bar and send to ejs
-  }
-  else {
+  } else {
     res.redirect("/");
   }
 });
 
+
 //=======================POST-ROUTES====================================
 
-app.post("/login",(req,res)=>{
+app.post("/login", (req, res) => {
 
-  const user=new User({
-    username:req.body.username,
-    password:req.body.password
+  const user = new User({
+    username: req.body.username,
+    password: req.body.password
   });
 
-  req.login(user,function(err){
-    if(err){
+  req.login(user, function(err) {
+    if (err) {
       console.log(err);
-    }
-    else{
-      passport.authenticate("local")(req,res,function(){
+    } else {
+      passport.authenticate("local")(req, res, function() {
         res.redirect("/lobby");
       })
     }
   })
+});
+
+app.post("/schedule", (req, res) => {
+
+  if (req.isAuthenticated()) {
+    // console.log(req.user);
+    const date = req.body.date;
+    const time = req.body.time;
+
+    // console.log(date + " " + time);
+
+    User.updateOne({
+      username: req.user.username
+    }, {
+      $push: {
+        "meetings": {
+          date: date,
+          time: time
+        }
+      }
+    },function(err){
+      if(err){
+        console.log(err);
+      }else{
+        console.log("updated successfully");
+      }
+    });
+    res.redirect("/lobby");
+  } else {
+    res.redirect("/register");
+  }
+
 })
+
+// const wss=new WebSocket.Server({ server });
+//
+// wss.on("connection",ws=>{
+//
+//
+// })
 
 //===========================SOCKET-CONNECTION=================================
 
 io.on('connection', socket => {
 
-  app.post("/register",(req,res)=>{
+  console.log("Socket connected");
 
-    User.register({username:req.body.username},req.body.password,function(err,user){
-      if(err){
+  //Register route
+  app.post("/register", (req, res) => {
+
+    User.register({
+      username: req.body.username,
+      name: req.body.name,
+      meetings: []
+    }, req.body.password, function(err, user) {
+      if (err) {
         console.log(err);
-        socket.emit("message","User exists!Please login")
+        socket.emit("message", "User exists!Please login")
         // res.redirect("/register");
-      }
-      else{
-        passport.authenticate("local")(req,res,function(){
+      } else {
+        passport.authenticate("local")(req, res, function() {
           res.redirect("/login");
         });
       }
     })
 
   });
+  //====================================
 
   //code to disconnect user using socket simple method ('join-room')
-  socket.on('join-room', (roomId, userId) => {
+  socket.on('join-room', (roomId, userId ,username) => {
 
+    if(userS.length===0){
+      host.sid=socket.id;
+      host.uid=userId;
+      host.name=username;
+      // console.log("Host: "+host.uid);
+    }
     userS.push(socket.id);
-    userI.push(userId);
+    userI.push({uid:userId,name:username});
     //console.log("room Id:- " + roomId,"userId:- "+ userId);    //userId mean new user
 
     //join Room
     console.log("room Id:- " + roomId, "userId:- " + userId); //userId mean new user
     socket.join(roomId); //join this new user to room
+    io.to(roomId).emit("get-host",host.uid);
     socket.to(roomId).emit('user-connected', userId); //for that we use this and emit to cliet
-
     //Remove User
     socket.on('removeUser', (sUser, rUser) => {
-      var i = userS.indexOf(rUser);
-      if (sUser == userI[0]) {
-        console.log("SuperUser Removed" + rUser);
+      // var i = userS.indexOf(rUser);
+      if (sUser === host.uid) {
+        console.log("User Removed" + rUser);
         socket.to(roomId).broadcast.emit('remove-User', rUser);
       }
     });
 
     //code to massage in roomId
     socket.on('message', (message, yourName) => {
-      io.to(roomId).emit('createMessage', message, yourName);
+      io.to(roomId).emit('createMessage', message);
 
     })
 
@@ -180,7 +243,7 @@ io.on('connection', socket => {
       //userS.filter(item => item !== userId);
       var i = userS.indexOf(socket.id);
       userS.splice(i, 1);
-      socket.to(roomId).broadcast.emit('user-disconnected', userI[i]);
+      socket.to(roomId).broadcast.emit('user-disconnected', userI[i].uid);
       //update array
 
       userI.splice(i, 1);

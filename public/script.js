@@ -57,8 +57,8 @@ navigator.mediaDevices.getUserMedia({     //by using this we can access user dev
 //if someone try to join room
 peer.on('open', async id =>{
    cUser = id;
-   await socket.emit('join-room', ROOM_ID, id);
-
+	 // console.log("Current user: "+id);
+   await socket.emit('join-room', ROOM_ID, id,YourName);
 })
 
 socket.on('user-disconnected', userId =>{   //userdisconnected so we now ready to stopshare
@@ -250,25 +250,32 @@ const changeHandLogo = ()=>{
 }
 
 //kick option
-socket.on('remove-User', (userId) =>{
-  if (cUser == userId) {
+socket.on('remove-User', (userR) =>{
+  if (cUser == userR) {
     disconnectNow();
   }
 });
 
 const getUsers = ()=>{
-  socket.emit('seruI',);
-
+  socket.emit('seruI');
 }
 
+let host="";
+
+socket.on("get-host",(hostUser)=>{
+	console.log("Host-"+hostUser);
+	host=hostUser;
+})
+
 const listOfUser = ()=>{
-  //userDropDown.innerHTML = '';
-  while (userDropDown.firstChild) {
-    userDropDown.removeChild(userDropDown.lastChild);
-  }
+  userDropDown.innerHTML = '';
+  // while (userDropDown.firstChild) {
+  //   userDropDown.removeChild(userDropDown.lastChild);
+  // }
+
   for (var i = 0; i < userlist.length; i++) {
     var x = document.createElement("a");
-    var t = document.createTextNode(`VideoSector ${i+1}`);
+    var t = document.createTextNode(userlist[i].uid===host?`${userlist[i].name} (Host)`:`${userlist[i].name}`);
     x.appendChild(t);
     userDropDown.append(x);
   }
@@ -276,7 +283,7 @@ const listOfUser = ()=>{
   for (let i = 0; i < anchors.length; i++) {
     anchors[i].addEventListener('click', () => {
         console.log(`Link is clicked ${i}`);
-        anchoreUser(userlist[i]);
+        anchoreUser(userlist[i].uid);
     });
   }
 }
@@ -288,8 +295,9 @@ const anchoreUser = (userR)=>{
 
 socket.on('all_users_inRoom', (userI) =>{
       console.log(userI);
-      userlist.splice(0,userlist.length);
-      userlist.push.apply(userlist ,userI);
+      // userlist.splice(0,userlist.length);
+			userlist=[];
+      userlist=userI;
       console.log(userlist);
       listOfUser();
       document.getElementById("myDropdown").classList.toggle("show");
