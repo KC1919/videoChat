@@ -25,6 +25,9 @@ navigator.mediaDevices.getUserMedia({     //by using this we can access user dev
     	var acceptsCall = confirm("Videocall incoming");
 
       if(acceptsCall){
+					console.log("calling: ",call.peer);
+					console.log("Accept-call:",call);
+					peers[call.peer]=call;
           console.log("answered");
     	    call.answer(stream);               //via this send video stream to caller
           const video = document.createElement('video');
@@ -57,11 +60,12 @@ navigator.mediaDevices.getUserMedia({     //by using this we can access user dev
 //if someone try to join room
 peer.on('open', async id =>{
    cUser = id;
-	 // console.log("Current user: "+id);
-   await socket.emit('join-room', ROOM_ID, id,YourName);
+	 console.log("Current user: "+id);
+   await socket.emit('join-room', ROOM_ID, id, YourName);
 })
 
 socket.on('user-disconnected', userId =>{   //userdisconnected so we now ready to stopshare
+			console.log("user-diss:",peers[userId]);
       if(peers[userId]) peers[userId].close();
       console.log('user ID fetch Disconnect: '+ userId);
               //by this fuction which call user to stop share
@@ -77,9 +81,12 @@ const connectToNewUser = (userId, stream) =>{
           addVideoStream(video, userVideoStream);  // Show stream in some video/canvas element.
       })
       call.on('close', () =>{
-      	video.remove()
+      	video.remove();
       })
       //currentPeer = call.peerConnection;
+
+			// peers[call.peer]=call;
+			console.log("calling-call:",call);
       peers[userId] = call;
       currentPeer.push(call.peerConnection);
       console.log(currentPeer);
@@ -88,7 +95,7 @@ const connectToNewUser = (userId, stream) =>{
 
  const addVideoStream = (video, stream) =>{      //this help to show and append or add video to user side
 	video.srcObject = stream;
-  video.controls = true;
+  video.controls = false;
 	video.addEventListener('loadedmetadata', () =>{
 		video.play();
 	})
@@ -190,9 +197,9 @@ const scrollToBottom = () =>{
 //screenShare
 const screenshare = () =>{
  navigator.mediaDevices.getDisplayMedia({
-     video:{
-       cursor:'always'
-     },
+	 video: {
+		 cursor:"always"
+	},
      audio:{
             echoCancellation:true,
             noiseSupprission:true
@@ -211,6 +218,8 @@ const screenshare = () =>{
 
             sender.replaceTrack(videoTrack);
        }
+
+
 
   })
 
@@ -296,8 +305,10 @@ const anchoreUser = (userR)=>{
 socket.on('all_users_inRoom', (userI) =>{
       console.log(userI);
       // userlist.splice(0,userlist.length);
-			userlist=[];
-      userlist=userI;
+			// userlist=[];
+      // userlist=userI;
+			userlist.splice(0,userlist.length);
+      userlist.push.apply(userlist ,userI);
       console.log(userlist);
       listOfUser();
       document.getElementById("myDropdown").classList.toggle("show");

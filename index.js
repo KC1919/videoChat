@@ -41,7 +41,7 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
-
+//mongodb+srv://kunal-admin:kunal123456@cluster0.1nl6l.mongodb.net
 mongoose.connect("mongodb://localhost:27017/users", {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -235,7 +235,7 @@ io.on('connection', socket => {
 
     //code to massage in roomId
     socket.on('message', (message, yourName) => {
-      io.to(roomId).emit('createMessage', message);
+      io.to(roomId).emit('createMessage', message,yourName);
 
     })
 
@@ -255,7 +255,7 @@ io.on('connection', socket => {
     });
   })
 
-})
+});
 
 // =======================SERVER-CONNECTION============================
 
